@@ -1,263 +1,172 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>WebAR — Robust Marker Demo</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Premium WebAR Fixed</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  <!-- AR.js for A-Frame -->
+  <!-- AR.js -->
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
   <style>
-    html,body { height:100%; margin:0; background:#000; overflow:hidden; font-family:system-ui,Roboto,Helvetica,Arial; }
-    /* overlays */
-    #startOverlay, #loader, #errorOverlay {
-      position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; z-index:10000;
-      background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.85));
-      color:#fff;
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
     }
-    #startOverlay .box, #loader .box, #errorOverlay .box { text-align:center; padding:18px; border-radius:12px; max-width:90%; }
-    button.primary {
-      background: #0ea5ff; color: #012; border: 0; padding: 10px 16px; border-radius:10px; font-weight:600; font-size:16px;
-      cursor:pointer;
+    #loader {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,.85);
+      color: #fff;
+      font-family: system-ui;
+      z-index: 9999;
     }
-    button.ghost { background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.12); padding:8px 12px; border-radius:8px; cursor:pointer; }
-    #loader { pointer-events:none; } /* loader not interactive */
+    .spinner {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 6px solid rgba(255,255,255,.15);
+      border-top-color: #fff;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .hint {
-      position: fixed; bottom: 18px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); color:#fff;
-      padding:8px 12px; border-radius:10px; font-size:13px; z-index:9999;
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.6);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-family: system-ui;
+      z-index: 9998;
     }
-    #message { position: fixed; top:14px; left:14px; color:#fff; font-size:13px; background:rgba(0,0,0,0.35); padding:6px 8px; border-radius:6px; z-index:9999; display:none;}
   </style>
 </head>
 <body>
 
-  <!-- START overlay — ensures user gesture for camera permission (works well on iOS) -->
-  <div id="startOverlay">
-    <div class="box">
-      <h2 style="margin:0 0 8px 0">Start AR</h2>
-      <p style="margin:0 0 14px 0">Tap to allow camera access. This page requires camera permissions to run WebAR.</p>
-      <div style="display:flex; gap:10px; justify-content:center;">
-        <button id="startBtn" class="primary">Start AR</button>
-        <button id="tryWithout" class="ghost">Try without permission (debug)</button>
-      </div>
-    </div>
+<div id="loader">
+  <div style="text-align:center">
+    <div class="spinner"></div>
+    <div style="margin-top:12px">Loading AR…</div>
   </div>
+</div>
 
-  <!-- loader (hidden once model or marker confirmed) -->
-  <div id="loader" style="display:none; pointer-events:none;">
-    <div class="box">
-      <div style="margin-bottom:12px"><strong>Loading AR…</strong></div>
-      <div style="width:48px;height:48px;border-radius:50%;border:6px solid rgba(255,255,255,0.12);border-top-color:#fff;animation:spin 1s linear infinite"></div>
-    </div>
-  </div>
+<div class="hint">Point camera at marker · Drag to rotate · Pinch to zoom</div>
 
-  <!-- error overlay -->
-  <div id="errorOverlay" style="display:none; pointer-events:auto;">
-    <div class="box">
-      <h3 style="margin:0 0 6px 0">Camera error</h3>
-      <p id="errorText" style="margin:0 0 12px 0">Permission denied or no camera available.</p>
-      <div><button id="retryBtn" class="primary">Try Again</button></div>
-    </div>
-  </div>
+<!-- Main AR Scene -->
+<a-scene
+  vr-mode-ui="enabled:false"
+  renderer="antialias:true; colorManagement:true; physicallyCorrectLights:true"
+  arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
+>
 
-  <div id="message"></div>
+  <!-- Assets -->
+  <a-assets timeout="60000">
+    <a-asset-item id="model" src="assets/model.glb"></a-asset-item>
+  </a-assets>
 
-  <div class="hint">Point camera at the printed marker · Drag to rotate · Pinch to zoom</div>
+  <!-- Lighting -->
+  <a-entity light="type: ambient; intensity: 0.9"></a-entity>
+  <a-entity light="type: directional; intensity: 0.6" position="1 2 1"></a-entity>
 
-  <!-- AR scene (no embedded — allow AR.js to manage camera full-screen) -->
-  <a-scene
-    vr-mode-ui="enabled:false"
-    renderer="antialias:true; colorManagement:true; physicallyCorrectLights:true"
-    arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
-    id="scene"
+  <!-- Marker -->
+  <a-marker
+    type="pattern"
+    url="assets/marker.patt"
+    size="0.12"
+    smooth="true"
+    smoothCount="15"
+    smoothTolerance="0.01"
+    smoothThreshold="4"
+    id="marker"
   >
-    <a-assets timeout="60000">
-      <!-- replace with your GLB file in assets/ -->
-      <a-asset-item id="modelAsset" src="assets/model.glb"></a-asset-item>
-    </a-assets>
+    <!-- Shadow Plane -->
+    <a-plane
+      rotation="-90 0 0"
+      width="0.5"
+      height="0.5"
+      material="color:#000; opacity:0.15; shader:flat"
+      position="0 0.001 0">
+    </a-plane>
 
-    <!-- Lights -->
-    <a-entity light="type: ambient; intensity:0.8"></a-entity>
-    <a-entity light="type: directional; intensity:0.6" position="1 2 1"></a-entity>
+    <!-- GLB Model -->
+    <a-entity
+      id="modelWrapper"
+      gltf-model="#model"
+      rotation="-90 0 180"
+      auto-scale
+      gesture-controls>
+    </a-entity>
+  </a-marker>
 
-    <!-- Marker (custom .patt) -->
-    <a-marker id="marker" type="pattern" url="assets/marker.patt" size="0.12" smooth="true" smoothCount="12" smoothTolerance="0.01" smoothThreshold="5">
-      <!-- soft shadow -->
-      <a-plane rotation="-90 0 0" width="0.45" height="0.45" material="color:#000; opacity:0.14; shader:flat" position="0 0.001 0"></a-plane>
+  <a-entity camera="near:0.01; far:50"></a-entity>
 
-      <!-- Model wrapper with safe components -->
-      <a-entity id="modelWrapper" rotation="-90 0 180" position="0 0 0" scale="0.02 0.02 0.02" gesture-handler autoscale>
-        <a-entity id="modelEntity" gltf-model="#modelAsset"></a-entity>
-      </a-entity>
-    </a-marker>
-
-    <!-- fallback camera entity required by A-Frame -->
-    <a-entity camera="near:0.01; far:50"></a-entity>
-  </a-scene>
+</a-scene>
 
 <script>
-/* ---------- small helpers ---------- */
-const startOverlay = document.getElementById('startOverlay');
+/* Hide loader when model is ready */
 const loader = document.getElementById('loader');
-const errorOverlay = document.getElementById('errorOverlay');
-const errorText = document.getElementById('errorText');
-const message = document.getElementById('message');
-const startBtn = document.getElementById('startBtn');
-const retryBtn = document.getElementById('retryBtn');
-const tryWithout = document.getElementById('tryWithout');
-
-function showMessage(txt, timeout=2000){ message.style.display='block'; message.textContent = txt; if(timeout) setTimeout(()=>message.style.display='none', timeout); }
-function showLoader(){ loader.style.display='flex'; }
-function hideLoader(){ loader.style.display='none'; }
-
-/* ---------- permission flow: request camera permission with a user gesture ---------- */
-async function requestCameraPermission(){
-  // user gesture required on some browsers (iOS). This will prompt the user and keep permission allowed for subsequent AR.js init.
-  try {
-    showLoader();
-    // request permission
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    // If we got a stream, immediately stop tracks to free camera for AR.js.
-    stream.getTracks().forEach(t => t.stop());
-    // Hide start overlay and allow AR.js to acquire camera by itself.
-    startOverlay.style.display='none';
-    showMessage('Camera permission granted — starting AR');
-    // show loader until model loads
-    showLoader();
-  } catch (err) {
-    // permission denied or no device
-    startOverlay.style.display='none';
-    errorText.textContent = 'Camera permission denied or no camera available. Check browser settings or try another device.';
-    errorOverlay.style.display='flex';
-    hideLoader();
-    console.warn('getUserMedia error:', err);
-  }
-}
-
-startBtn.addEventListener('click', requestCameraPermission);
-retryBtn.addEventListener('click', ()=>{ errorOverlay.style.display='none'; startOverlay.style.display='flex'; });
-tryWithout.addEventListener('click', ()=>{ startOverlay.style.display='none'; showLoader(); showMessage('Starting without explicit permission prompt — may be blocked by browser'); });
-
-/* ---------- safety: ensure paths loaded, hide loader on model load ---------- */
-document.querySelector('#modelEntity').addEventListener('model-loaded', () => {
-  // model GLB loaded
-  hideLoader();
-  showMessage('Model loaded',1500);
-});
-document.querySelector('#modelEntity').addEventListener('model-error', (e) => {
-  hideLoader();
-  errorText.textContent = 'Model failed to load. Check assets/model.glb path and CORS.';
-  errorOverlay.style.display='flex';
-  console.error('model-error', e);
+document.querySelector('#model').addEventListener('loaded', () => {
+  loader.style.display = 'none';
 });
 
-/* ---------- marker found / lost handling ---------- */
-const marker = document.getElementById('marker');
-marker.addEventListener('markerFound', () => {
-  hideLoader();
-  showMessage('Marker found',1000);
-  const hint = document.querySelector('.hint'); if(hint) hint.style.display='none';
-});
-marker.addEventListener('markerLost', () => {
-  showMessage('Marker lost',1000);
-  const hint = document.querySelector('.hint'); if(hint) hint.style.display='block';
-});
-
-/* ---------- robust autoscale component ---------- */
-AFRAME.registerComponent('autoscale', {
-  schema: { targetSize: { type: 'number', default: 0.08 } }, // meters footprint
+/* Auto scale component (safe, with error check) */
+AFRAME.registerComponent('auto-scale', {
   init() {
     this.el.addEventListener('model-loaded', () => {
-      try {
-        // try several common keys for loaded object
-        const obj = this.el.getObject3D('mesh') || this.el.getObject3D('gltf') || this.el.getObject3D();
-        if (!obj) { console.warn('autoscale: no object3D found'); return; }
-        const bbox = new THREE.Box3().setFromObject(obj);
-        const size = new THREE.Vector3();
-        bbox.getSize(size);
-        const footprint = Math.max(size.x, size.z, 0.0001);
-        const scale = this.data.targetSize / footprint;
-        // limit scale to reasonable bounds
-        const clamped = Math.max(0.001, Math.min(10, scale));
-        this.el.object3D.scale.set(clamped, clamped, clamped);
-        console.log('autoscale set scale', clamped);
-      } catch (err) { console.warn('autoscale error', err); }
+      const obj = this.el.getObject3D('mesh');
+      if (!obj) return; // prevent crash
+      const box = new THREE.Box3().setFromObject(obj);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const targetSize = 0.08; // meters
+      const scale = targetSize / Math.max(size.x, size.z);
+      this.el.object3D.scale.set(scale, scale, scale);
     });
   }
 });
 
-/* ---------- gesture-handler: robust single-finger rotate + pinch-zoom ---------- */
-AFRAME.registerComponent('gesture-handler', {
-  init: function () {
-    this.el.sceneEl.canvas && this.el.sceneEl.canvas.setAttribute && this.el.sceneEl.canvas.setAttribute('touch-action', 'none');
-    this.rotationY = this.el.object3D.rotation.y || 0;
-    this.startTouches = null;
-    this.startDistance = 0;
+/* Gesture controls (safe, prevents scene crash) */
+AFRAME.registerComponent('gesture-controls', {
+  init() {
     this.startScale = this.el.object3D.scale.clone();
-    this.minScale = 0.4; this.maxScale = 3.0;
+    this.scaleFactor = 1;
 
-    // pointer / touch events on window (works both mobile & desktop)
-    this.onTouchStart = (evt) => {
-      const touches = evt.touches ? evt.touches : (evt.pointerType ? [evt] : []);
-      this.startTouches = Array.from(touches).map(t => ({ x: t.clientX, y: t.clientY, id: t.identifier }));
-      if (this.startTouches.length === 2) {
-        const dx = this.startTouches[0].x - this.startTouches[1].x;
-        const dy = this.startTouches[0].y - this.startTouches[1].y;
-        this.startDistance = Math.hypot(dx, dy);
-        this.startScale = this.el.object3D.scale.clone();
-      }
-      this.lastX = this.startTouches[0] ? this.startTouches[0].x : null;
-    };
+    this.el.sceneEl.addEventListener('gesturestart', () => {
+      this.startScale = this.el.object3D.scale.clone();
+    });
 
-    this.onTouchMove = (evt) => {
-      if (!this.startTouches) return;
-      const touches = evt.touches ? evt.touches : (evt.pointerType ? [evt] : []);
-      if (touches.length === 1 && this.lastX != null) {
-        const x = touches[0].clientX;
-        const dx = x - this.lastX;
-        this.lastX = x;
-        // rotate sensitivity
-        this.el.object3D.rotation.y += dx * 0.005;
-      } else if (touches.length === 2) {
-        const p0 = touches[0], p1 = touches[1];
-        const dx = p0.clientX - p1.clientX; const dy = p0.clientY - p1.clientY;
-        const dist = Math.hypot(dx, dy);
-        if (this.startDistance > 0) {
-          const factor = dist / this.startDistance;
-          const newScale = this.startScale.x * factor;
-          const clamped = Math.min(this.maxScale, Math.max(this.minScale, newScale));
-          this.el.object3D.scale.set(clamped, clamped, clamped);
-        }
-      }
-    };
+    this.el.sceneEl.addEventListener('onefingermove', e => {
+      if (!this.el.object3D) return;
+      this.el.object3D.rotation.y += e.detail.positionChange.x * 0.008;
+    });
 
-    this.onTouchEnd = (evt) => { this.startTouches = null; this.lastX = null; };
-
-    // attach handlers
-    window.addEventListener('touchstart', this.onTouchStart, { passive: false });
-    window.addEventListener('touchmove', this.onTouchMove, { passive: false });
-    window.addEventListener('touchend', this.onTouchEnd, { passive: false });
-    // pointer fallback for desktop
-    window.addEventListener('pointerdown', (e)=>{ if (e.pointerType === 'mouse') { this.mouseDown = true; this.lastX = e.clientX; } });
-    window.addEventListener('pointermove', (e)=>{ if (this.mouseDown) { const dx = e.clientX - this.lastX; this.lastX = e.clientX; this.el.object3D.rotation.y += dx * 0.005; } });
-    window.addEventListener('pointerup', ()=>{ this.mouseDown = false; });
-  },
-  remove: function () {
-    window.removeEventListener('touchstart', this.onTouchStart);
-    window.removeEventListener('touchmove', this.onTouchMove);
-    window.removeEventListener('touchend', this.onTouchEnd);
+    this.el.sceneEl.addEventListener('twofingermove', e => {
+      if (!this.el.object3D) return;
+      this.scaleFactor *= e.detail.scale;
+      this.scaleFactor = Math.min(2.2, Math.max(0.6, this.scaleFactor));
+      this.el.object3D.scale.set(
+        this.startScale.x * this.scaleFactor,
+        this.startScale.y * this.scaleFactor,
+        this.startScale.z * this.scaleFactor
+      );
+    });
   }
 });
 
-/* ---------- safety: if camera is blocked or AR.js errors, show message ---------- */
-window.addEventListener('error', (ev) => {
-  console.error('Unhandled error:', ev);
-});
-window.addEventListener('unhandledrejection', (ev) => {
-  console.error('Promise rejection:', ev);
+/* Hide hint once marker is found */
+document.getElementById('marker').addEventListener('markerFound', () => {
+  document.querySelector('.hint').style.display = 'none';
 });
 </script>
 
